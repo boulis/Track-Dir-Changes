@@ -10,11 +10,11 @@ parser = ArgumentParser(description="Tracks any changes in a specified directory
                                      Additions, deletions, changes of files and subdirs are tracked and recorded in\n \
                                      a log file. If user-defined thresholds are exceeded an alert is also created.\n")
 parser.add_argument("-d","--dir", dest="dir", default=".", help="The directory monitored")
-parser.add_argument("-p","--period", dest="period", default=430000, type=int, help="The period of checking, in secs. (default = 60 secs)")
+parser.add_argument("-p","--period", dest="period", default=43200, type=int, help="The period of checking, in secs. default=43200 (= 12 hours)")
 parser.add_argument("-s","--sizeabs", dest="size_abs", default=30, type=float, help="Number of MB of change in size to trigger an alert")
-parser.add_argument("-r","--sizerel", dest="size_rel", default=0.05, type=float, help="Fraction of change in size to trigger an alert (default=0.05 = 5%")
+parser.add_argument("-r","--sizerel", dest="size_rel", default=0.05, type=float, help="Fraction of change in size to trigger an alert (default=0.05)")
 parser.add_argument("-n","--numabs", dest="num_abs", default=50, type=int, help="Number files+dirs that need to be added/deleted to trigger an alert")
-parser.add_argument("-q","--numrel", dest="num_rel", default=0.05, type=float, help="Fraction of files+dirs that need to be added/deleted to trigger an alert (default=0.05 = 5%")
+parser.add_argument("-q","--numrel", dest="num_rel", default=0.05, type=float, help="Fraction of files+dirs that need to be added/deleted to trigger an alert (default=0.05)")
 parser.add_argument("-l","--logdir", dest="log_dir", default="/var/log/", help="The directory where log files and status information is kept (default /var/log/)")
 parser.add_argument("--once", action='store_true', help="If this flag is set then the script performs the comparison to previous state only once and exits")
 
