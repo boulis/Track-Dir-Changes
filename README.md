@@ -48,7 +48,7 @@ $ launchctl list net.boulis.TrackDir
 ```
 If you detect any problems, you can check logs/error.log for any errors that the tool reports.
 
-Apart from changing the run times, you can edit the template file to execute our tool with different parameters. For example, you could change the user defined thresholds, or you could use the --persistentAlert switch to change the way the alerts are created (instead of a fleeing notification, you will get a foreground window and you will have to press "OK" to dismiss it). Add extra parameters as new lines after the `<string>TRACKEDDIR/</string>` line of the template file. For example, to add the --persistentAlert switch simply add this line `<string>--persistentAlert</string>`
+Apart from changing the run times, you can edit the template file to execute our tool with different parameters. For example, you could change the user defined thresholds, or you could use the --persistentAlert switch to change the way the alerts are created (instead of a fleeing notification, you will get a foreground window and you will have to press "OK" to dismiss it). Add extra parameters as new lines after the `<string>TRACKEDDIR/</string>` line of the template file. For example, to add the --persistentAlert switch simply add this line `<string>--persistentAlert</string>`. If you need to update your agent (after updating the template for example) simply run the installation script again (don't forget the dir argument). The installation script will take care of stopping the old agent and replacing it with the new one.
 
 ### Uninstalling the background agent
 If you want to uninstall the background agent, you type the following three commands in a terminal
