@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>net.boulis.TrackDir</string>
+
+	<key>Program</key>
+	<string>/Users/aboulis/Downloads/Track-Dir-Changes/trackDirFileChanges.py</string>	
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/aboulis/Downloads/Track-Dir-Changes/trackDirFileChanges.py</string>
+		<string>-d</string>
+		<string>/Users/aboulis/Castalia-test2/</string>
+	</array>
+
+	<key>StandardErrorPath</key>
+	<string>/Users/aboulis/Downloads/Track-Dir-Changes/logs/error.log</string>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/aboulis/Downloads/Track-Dir-Changes/</string>
+	
+	<key>StartCalendarInterval</key>
+    <array>
+        <dict>
+        	<key>Hour</key>
+          	<integer>12</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+        	<key>Hour</key>
+          	<integer>23</integer>        
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+    </array>
+    
+    <key>RunAtLoad</key>
+	<true/>
+</dict>
+</plist>
