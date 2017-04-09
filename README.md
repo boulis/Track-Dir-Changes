@@ -1,24 +1,24 @@
 # Track-Dir-Changes
 A script to track additions, deletions, and file changes inside a directory
 
-A friend of mine had a problem. In his work they used some cloud storage (think GoogleDrive or Dropbox) to collaborate. All employees had a directory in their computer where changes were synced. The problem was that from time to time someone would make large changes to this shared directory, and syncing was costly since many employees worked remotely. Some of these changes were a mistake, so my friend wanted to monitor the usage of this shared directory. He wanted a simple program that would check the synced folder periodically (once or twice a day) and let him know if there were any significant additions/deletions/changes. He could not find a tool doing what he wanted, so he asked me if I could make one. This is the result.
+A friend of mine had a problem. In his work they used some cloud storage (think GoogleDrive or Dropbox) to collaborate. All employees had a directory in their computer where changes were synced. The problem was that from time to time someone would make large changes to this shared directory, and syncing was costly since many employees worked remotely. Some of these changes were a mistake, so my friend wanted to monitor the usage of this shared directory. He wanted a simple program that would check the synced folder periodically (once or twice a day) and let him know if there were any significant additions/deletions/changes. He could not find a tool doing what he wanted, so he asked me if I could make one. This is the result. Download it or clone it on your machine to try it out.
 
-You need Python 2.7 to run this tool. To check if you have python type this command in a terminal type `which python`. If you get the reply `/usr/bin/python` you are good to go. To check the Python version you can type `python --version`. 
+You need Python 2.7 to run this tool. The installation script automatically checks for Python, but you can also check manually if you have it or not by typing this command in a terminal: `which python`. If you get the reply `/usr/bin/python` you are good to go. To check your Python version you can type `python --version`. 
 
-This tool is made with Mac OS X in mind, but it could be adapted to work on other platforms as well. To port to other platform you need to change two things: the alert method, and the way to run it as a daemon.
+This tool is made with Mac OS X in mind, but it could be adapted to work on other platforms as well. To port to another platform you need to change two things: the alert method, and the way to run it as a daemon.
 
-This tool is better run as a daemon in the background (more on this later), but it can also be executed from a terminal just once using the `--once` switch. 
+This tool is intented to be run as an agent/daemon in the background periodically (more on this later), but it can also be executed from a terminal just once. 
 ```
 $ ./trackDirFileChanges.py -d dir_you_want_tracked
 ```
 
 The tool creates two files in the directory you specified as log_dir (default: `Track-Dir-Changes/logs/`)
 
-- The first one is a .json file recording the last seen file and directory structure snapshop: `<log_dir>/Track<dir path>.json`
-If this file is not found, or is corrupted, then the program assumes that we just started tracking this directory, reports some aggregate information in the change log and creates the .json file 
-- The second one is a log of the changes we find over time: `<log_dir>/Track<dir path>changes.log`
+- The first one is a .json file recording the last seen snapshot of file and directory structure: `<log_dir>/Track<dir path>.json`
+If this file is not found, or is corrupted, then the program assumes that we just started tracking this directory, reports some aggregate information in the change log and creates a new .json file 
+- The second file is a log of the changes we find over time: `<log_dir>/Track<dir path>changes.log`
 
-When the program runs and there is a previous state to compare the directory structure to, it finds all changes made (additions, deletions, changes in file size) and records them in the change log. If one of several user-defined thresholds is crossed then the program also alert the user by creating an OSC notification (a window that you see on the top right corner of your screen that disappears after a few seconds). Here are the four user-defined threasholds and their correspending switches
+When the program runs and there is a previous snapshot to compare the directory structure to, it finds all changes made (additions, deletions, changes in file size) and records them in the change log. If one of several user-defined thresholds is crossed then the program also alerts the user by creating an OSX notification (a window that you see on the top right corner of your screen that disappears after a few seconds). Here are the four user-defined threasholds and their correspending switches
 - Absolute size in MB. Use switch `-s` or `--sizeabs` followed by a number (default=30)
 - Relative size change compared to current total size. Use switch `-r` or `--sizerel` followed by a fraction (default=0.05)
 - Absolute number of files. Use switch `-n` or `--numabs` followed by a number (default=50)
@@ -31,23 +31,29 @@ $ ./trackDirFileChanges.py -h
 Note that we only rely on file sizes to determine that a file has changed or not, not on a hash generated by the file. This is acceptable as the main application of this script is to track size changes.
 
 ## Runnning as an agent in the background
-Running the program from the terminal manually if fine for testing it, but what you really want is to run in the background a couple of times a day. Max OSX's buildin `launchd` is perfect for this job. I have included a `.plist` file to define how we will run our tool as an agent/daemon. You need to edit the `.plist` file to work for your needs. You need to replace all directories to point to where you have put Track-Dir-Changes/ and you also need to provide the directory you want monitored (the example plist monitors Castalia-test2/). Finally you can change the run times, by editing the approprieate fields. Notice that the current times are 12:00 and 23:30. You can change them, add more, or remove them. `Launchd` will execute our tool at these times, as well as when the agent first runs (at system startup for example). If the computer is sleeping during the nominated execution times, `launchd` will execute it immediately after waking up (just once, even if multiple times have passed on sleeping). 
+Running the program from the terminal manually is fine for testing it, but what you really want is to run in the background a couple of times a day. Using Mac OSX's buildin `launchd` is perfect for this job. 
 
-After you have edited the `.plist` file to your satisfation, it's time to start the agent. Copy the file to a special directory (so it starts every time you startup your computer without having to issue any commands manually)
+### Installing the background agent
+I have created an installation script to do all the needed configuration and launch the agent automatically. Open a terminal, go to the Track-Dir-Changes directory and type:
 ```
-$ cp net.boulis.TrackDir.plist ~/Library/LaunchAgents/
+$ ./install.sh  ~/my_tracked_dir
 ```
-Then you can load and start the agent:
-```
-$ launchctl load ~/Library/LaunchAgents/net.boulis.TrackDir.plist
-```
+Notice the argument to the installation script. This is the directory you want tracked. You can use ~ (meaning your home directory) or any other cmdline substitutions to name the directory. (Note: do **not** include a trailing `/` in the directory name.) The installation script will automatically check whether you have the right Python, it will create an agent plist file from the available template, it will check is there is an older agent present and will stop it, and finally it will launch the new agent.
+
+The current plist template is set to run the agent twice a day at 12:00 and 23:30. You can edit the template file to change them, add more, or remove them. `Launchd` will execute our tool at these times, as well as when the agent first runs (at system startup for example, or when you first install). If the computer is sleeping during the nominated execution times, `launchd` will execute it immediately after waking up (just once, even if multiple times have passed on sleeping). 
+
 To check if the agent is running, you can type:
 ```
 $ launchctl list net.boulis.TrackDir
 ```
-and to stop it you can issue two commands:
+If you detect any problems, you can check logs/error.log for any errors that the tool reports.
+
+Apart from changing the run times, you can edit the template file to execute our tool with different parameters. For example, you could change the user defined thresholds, or you could use the --persistentAlert switch to change the way the alerts are created (instead of a fleeing notification, you will get a foreground window and you will have to press "OK" to dismiss it). Add extra parameters as new lines after the `<string>TRACKEDDIR/</string>` line of the template file. For example, to add the --persistentAlert switch simply add this line `<string>--persistentAlert</string>`
+
+### Uninstalling the background agent
+If you want to uninstall the background agent, you type the following three commands in a terminal
 ```
 $ launchctl stop net.boulis.TrackDir
 $ launchctl unload ~/Library/LaunchAgents/net.boulis.TrackDir.plist
+$ rm ~/Library/LaunchAgents/net.boulis.TrackDir.plist
 ```
-In the future I will provide an installation script that will do all this editing and command execution automatically.
