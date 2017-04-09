@@ -6,19 +6,19 @@
 	<string>net.boulis.TrackDir</string>
 
 	<key>Program</key>
-	<string>/Users/aboulis/Downloads/Track-Dir-Changes/trackDirFileChanges.py</string>	
+	<string>HOMEDIR/trackDirFileChanges.py</string>	
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Users/aboulis/Downloads/Track-Dir-Changes/trackDirFileChanges.py</string>
+		<string>HOMEDIR/trackDirFileChanges.py</string>
 		<string>-d</string>
-		<string>/Users/aboulis/Castalia-test2/</string>
+		<string>TRACKEDDIR/</string>
 	</array>
 
 	<key>StandardErrorPath</key>
-	<string>/Users/aboulis/Downloads/Track-Dir-Changes/logs/error.log</string>
+	<string>HOMEDIR/logs/error.log</string>
 
 	<key>WorkingDirectory</key>
-	<string>/Users/aboulis/Downloads/Track-Dir-Changes/</string>
+	<string>HOMEDIR/</string>
 	
 	<key>StartCalendarInterval</key>
     <array>
@@ -35,7 +35,7 @@
             <integer>30</integer>
         </dict>
     </array>
-    
+
     <key>RunAtLoad</key>
 	<true/>
 </dict>
