@@ -12,6 +12,9 @@
 		<string>HOMEDIR/trackDirFileChanges.py</string>
 		<string>-d</string>
 		<string>TRACKEDDIR/</string>
+        <string>-s</string>
+        <string>100</string>
+        <string>--persistentAlert</string>
 	</array>
 
 	<key>StandardErrorPath</key>
