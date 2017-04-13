@@ -59,7 +59,8 @@ class Tracker:
         self.current_total_dir_num = 0 
     
     '''
-    Read the previous state of the root directory from a special file. If the file does not exist return an empty dict
+    Read the previous state of the root directory from a special file. 
+    If the file does not exist or is corrupted, return an empty dict
     '''
     def readPrevState(self):
 
@@ -77,13 +78,22 @@ class Tracker:
     def writeCurrentState(self):
         prev_state_filename = 'track{}.json'.format(self.root.replace('/','_'))
         with open(join(self.log_dir, prev_state_filename), 'w') as state_file:
-            state_file.write(json.dumps(self.current_state, separators=(',', ':')))
+            json.dump(self.current_state, state_file, encoding='utf-8', separators=(',', ':'))
+            # The json object will be written in the file, all strings will be unicode strings. Non-ascii characters
+            # will be written as codepoints in ascii (e.g., u'\u03b8' is theta). We could write them as non-ascii utf-8
+            # characters by using the parameter ensure_ascii=False. But the json.load() method will just read the  
+            # previous and create dictionaries with unicode strings, so we have to deal with unicode strings anyway.
+            
 
     '''
     A function to find the total size of files and number of files in a directory based on the previous state
-    Returns the total files size and total files number
+    Returns the total files size and total files number. The pathname should be a unicode string.
     '''
     def getSizeAndNum(self, pathname):
+
+        # check if pathname is unicode, otherwise the check whether pathname is in the dictionaty will fail silently
+        if type(pathname) is not unicode: 
+            raise ValueError('pathname needs to be a unicode string, you have passed:', type(pathname))
 
         if pathname not in self.previous_state: return (0, 0)
 
@@ -109,10 +119,8 @@ class Tracker:
 
         for path, curr_dirs, curr_files in walk(self.root):
 
-            # find the sizes of all the files in this directory
-            curr_files_and_sizes = {}
-            for fname in curr_files:
-                curr_files_and_sizes[fname] = getsize(join(path, fname))
+            # find the sizes of all the files in this directory, use a dictionary comprehension
+            curr_files_and_sizes = {fname: getsize(join(path, fname)) for fname in curr_files}
 
             # update the total counts
             self.current_total_size += sum(curr_files_and_sizes.values())
@@ -122,39 +130,42 @@ class Tracker:
             # update the current state
             self.current_state[path] = [curr_dirs, curr_files_and_sizes]
 
-
-            if path in self.previous_state:
-                prev_dirs, prev_files_and_sizes = self.previous_state[path]
+            path_unicode = path.decode('utf-8')
+            if path_unicode in self.previous_state:
+                prev_dirs, prev_files_and_sizes = self.previous_state[path_unicode]
 
                 # check if sub dirs are the same
-                if prev_dirs != curr_dirs:
+                curr_dirs_unicode = [d.decode('utf-8') for d in curr_dirs]
+                if prev_dirs != curr_dirs_unicode:
                     # we only want to get the deleted dirs here, since the 
                     # added ones will appear in the path as we walk the tree
-                    deleted_dirs_list = list(set(prev_dirs)-set(curr_dirs))
+                    deleted_dirs_list = list(set(prev_dirs)-set(curr_dirs_unicode))
                     for dname in deleted_dirs_list:
                         # use a recursive function to get the total size and file number in the deleted dir
-                        dir_size , dir_file_num = self.getSizeAndNum(join(path, dname))
-                        self.deleted_dirs.append([join(path, dname), dir_size, dir_file_num])
+                        dir_size , dir_file_num = self.getSizeAndNum(join(path_unicode, dname))
+                        self.deleted_dirs.append([join(path_unicode, dname), dir_size, dir_file_num])
 
 
-                # check if files are the same
-                if prev_files_and_sizes != curr_files_and_sizes:
+                # to compare the files, we need to first convert them to unicode strings (from utf-8 byte strings)
+                curr_files_and_sizes_unicode = {f.decode('utf-8'): curr_files_and_sizes[f] for f in curr_files_and_sizes}
+                # check if files are the same                
+                if prev_files_and_sizes != curr_files_and_sizes_unicode:
                     # find the differences
-                    deleted_files_set = set(prev_files_and_sizes) - set(curr_files_and_sizes)
+                    deleted_files_set = set(prev_files_and_sizes) - set(curr_files_and_sizes_unicode)
                     for f in deleted_files_set:
-                        self.deleted_files[path+f] = prev_files_and_sizes[f]
+                        self.deleted_files[join(path_unicode,f)] = prev_files_and_sizes[f]
 
-                    added_files_set = set(curr_files_and_sizes) - set(prev_files_and_sizes)
+                    added_files_set = set(curr_files_and_sizes_unicode) - set(prev_files_and_sizes)
                     for f in added_files_set:
-                        self.added_files[path+f] = curr_files_and_sizes[f]
+                        self.added_files[join(path_unicode,f)] = curr_files_and_sizes_unicode[f]
 
-                    common_files_set = set(curr_files_and_sizes) - added_files_set
+                    common_files_set = set(curr_files_and_sizes_unicode) - added_files_set
                     for f in common_files_set:
-                        if prev_files_and_sizes[f] != curr_files_and_sizes[f]:
-                            self.changed_files[path+f] = (prev_files_and_sizes[f], curr_files_and_sizes[f])
+                        if prev_files_and_sizes[f] != curr_files_and_sizes_unicode[f]:
+                            self.changed_files[join(path_unicode,f)] = (prev_files_and_sizes[f], curr_files_and_sizes_unicode[f])
 
             else:
-                self.added_dirs.append([path, curr_dirs, curr_files_and_sizes])
+                self.added_dirs.append([path, curr_dirs, curr_files_and_sizes])  # we can leave this in non-unicode format
 
         # Finally calculate various aggregates:
 
@@ -180,7 +191,7 @@ class Tracker:
 
     def writeChanges(self):
         change_log_filename = 'track{}changes.log'.format(self.root.replace('/','_') )
-        with open(join(self.log_dir, change_log_filename), 'a') as log_file: 
+        with open(join(self.log_dir, change_log_filename), 'ab') as log_file: 
             # write a timestamp
             log_file.write('----------------  {}  ----------------\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             # check to see if we had no previous state, in which case we do not want to record all additions
@@ -205,7 +216,7 @@ class Tracker:
                 # start with deleted dirs, 
                 for d in self.deleted_dirs:
                     path, size, files_num = d
-                    log_file.write('Deleted dir: {} contained {} in {} files\n'.format(path, self.humanReadableSize(size), files_num))
+                    log_file.write('Deleted dir: {} contained {} in {} files\n'.format(path.encode('utf-8'), self.humanReadableSize(size), files_num))
 
                 # then added dirs    
                 for d in self.added_dirs:
@@ -216,13 +227,13 @@ class Tracker:
 
                 # continuing with deleted/added/changed files
                 for f, size in self.deleted_files.iteritems():
-                    log_file.write('Deleted file: {} was {} bytes\n'.format(f, size))
+                    log_file.write('Deleted file: {} was {} bytes\n'.format(f.encode('utf-8'), size))
 
                 for f, size in self.added_files.iteritems():
-                    log_file.write('Added file: {} is {} bytes\n'.format(f, size))     
+                    log_file.write('Added file: {} is {} bytes\n'.format(f.encode('utf-8'), size))     
 
                 for f, (old_size, new_size) in self.changed_files.iteritems():
-                    log_file.write('Changed file: {} from {} to {} bytes\n'.format(f, old_size, new_size)) 
+                    log_file.write('Changed file: {} from {} to {} bytes\n'.format(f.encode('utf-8'), old_size, new_size)) 
 
 
     def alertUser(self, size_abs, size_rel, num_abs, num_rel, persistentAlert):
