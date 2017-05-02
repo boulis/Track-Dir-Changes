@@ -20,6 +20,10 @@ else
     echo 'Python not found. Install Python 2.7 and try again'; exit 
 fi
 
+# Check if an argument was provided. If not exit with error message Usage: ./install.sh DIR_MONITORED
+${1?"Usage: $0 DIR_MONITORED"}
+
+
 # substitute HOMEDIR with the current dir in the plist template. 
 # Use % instead of the usual / because the directory path contains /
 # also create a new file, do not substitute infile
