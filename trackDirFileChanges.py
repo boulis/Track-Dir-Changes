@@ -58,6 +58,8 @@ class Tracker:
         self.current_total_file_num = 0 # The total number of all files inside the tracked dir
         self.current_total_dir_num = 0 # The total number of all subdirs inside the tracked dir
     
+        self.summary = ''  # A string to contain a summary of the additions/deletions/changes
+
     '''
     Read the previous state of the root directory from a special file. 
     If the file does not exist or is corrupted, return an empty dict
@@ -203,9 +205,9 @@ class Tracker:
         change_log_filename = 'track{}changes.log'.format(self.root.replace('/','_') )
         with open(join(self.log_dir, change_log_filename), 'ab') as log_file: 
             # write a timestamp
-            log_file.write('----------------  {}  ----------------\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            log_file.write('\n----------------  {}  ----------------\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             # check to see if we had no previous state, in which case we do not want to record all additions
-            if self.previous_state == {}:
+            if not self.previous_state:
                 log_file.write('New directory tracked.\n(Or .json file holding the previous state was deleted or corrupted)\n')
                 log_file.write('{} dirs and {} files occupying {}\n'.format(self.current_total_dir_num,
                                                                             self.current_total_file_num,
@@ -214,13 +216,14 @@ class Tracker:
                 # provide a summary of the changes
                 report_for_added = ''; report_for_deleted =''; report_for_changed = ''
                 if self.added_total_size > 0: 
-                    report_for_added = '- Added {} files totalling {} -'.format(self.added_total_num, self.humanReadableSize(self.added_total_size))
+                    report_for_added = 'Added:   {} files totalling {}\n'.format(self.added_total_num, self.humanReadableSize(self.added_total_size))
                 if self.deleted_total_size > 0: 
-                    report_for_deleted = '- Deleted {} files totalling {} -'.format(self.deleted_total_num, self.humanReadableSize(self.deleted_total_size))
+                    report_for_deleted = 'Deleted: {} files totalling {}\n'.format(self.deleted_total_num, self.humanReadableSize(self.deleted_total_size))
                 if self.changed_total_size > 0: 
-                    report_for_changed = '- {} files changed by {} -'.format(self.changed_total_num, self.humanReadableSize(self.changed_total_size))
+                    report_for_changed = 'Changed: {} files changed by {}\n'.format(self.changed_total_num, self.humanReadableSize(self.changed_total_size))
 
-                log_file.write(report_for_added + report_for_deleted + report_for_changed + '\n')
+                self.summary = report_for_added + report_for_deleted + report_for_changed
+                log_file.write(self.summary)
 
                 # provide a detailed list of all changes
                 # start with deleted dirs, 
@@ -231,7 +234,7 @@ class Tracker:
                 # then added dirs    
                 for d in self.added_dirs:
                     path, dirs, files_with_sizes = d
-                    size = sum(files_with_sizes.values()); 
+                    size = sum(files_with_sizes.values()) 
                     files_num = len(files_with_sizes)
                     log_file.write('Added dir: {}, contains {} in {} files\n'.format(path.encode('utf-8'), self.humanReadableSize(size), files_num))
 
@@ -252,7 +255,7 @@ class Tracker:
     '''
     def alertUser(self, size_abs, size_rel, num_abs, num_rel, persistentAlert):
 
-        if self.previous_state == {}: return 
+        if not self.previous_state: return 
 
         size = self.added_total_size + self.deleted_total_size + self.changed_total_size
         num  = self.added_total_num  + self.deleted_total_num  + self.changed_total_num
@@ -262,8 +265,8 @@ class Tracker:
             num  > num_abs or 
             num  > num_rel * self.current_total_file_num):
 
-            applescript = 'display notification "Added/Deleted/Changed: {}, {} files" with title "Boulis Directory Tracker"'.format(self.humanReadableSize(size), num)
-            alt_applescript = 'display dialog "Added/Deleted/Changed: {}, {} files" with title "Boulis Directory Tracker" with icon caution buttons {{"OK"}}'.format(self.humanReadableSize(size), num)
+            applescript = 'display notification "{}" with title "Boulis Directory Tracker"'.format(self.summary)
+            alt_applescript = 'display dialog "{}" with title "Boulis Directory Tracker" with icon caution buttons {{"OK"}}'.format(self.summary)
 
             # check whether we need a persistent window or just a notification, and run the appropriate applescript
             if persistentAlert:
